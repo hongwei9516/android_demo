@@ -16,11 +16,19 @@ sealed class MyDeviceUiEvent {
     object DismissFilter : MyDeviceUiEvent()
     object ConfirmFilter : MyDeviceUiEvent()
     object ResetFilter : MyDeviceUiEvent()
-    data class ToggleDeviceSelected(val category: String, val device: Device, val isSelected: Boolean) : MyDeviceUiEvent()
+    data class ToggleDeviceSelected(
+        val category: String,
+        val device: Device,
+        val isSelected: Boolean
+    ) : MyDeviceUiEvent()
+
+    object ShowAddDeviceScreen : MyDeviceUiEvent()
+    object DismissAddDeviceScreen : MyDeviceUiEvent()
+
 }
 
 // 修正：将顶层变量重命名为 initialCategorizedDevices，以避免与数据类参数的歧义
-public val initialCategorizedDevices = mapOf(
+val initialCategorizedDevices = mapOf(
     "压力" to listOf(
         Device("手持高精度测温仪", "压力", R.drawable.ic_icon_mp1),
         Device("手持高精度测温仪2", "压力", R.drawable.ic_icon_mp1)
@@ -38,6 +46,7 @@ public val initialCategorizedDevices = mapOf(
 data class MyDeviceUiState(
     val showFilterSheet: Boolean = false,
     val totalSelectedCount: Int = 0,
+    val showAddDeviceScreen: Boolean = false,
     val categorizedDevices: Map<String, List<Device>> = initialCategorizedDevices, // 修正
     val selectedDevicesMap: Map<String, List<Device>> = initialCategorizedDevices.keys.associateWith { emptyList() } // 修正
 )
@@ -55,7 +64,14 @@ class MyDeviceViewModel : ViewModel() {
                 is MyDeviceUiEvent.DismissFilter -> dismissFilter()
                 is MyDeviceUiEvent.ConfirmFilter -> confirmFilter()
                 is MyDeviceUiEvent.ResetFilter -> resetFilter()
-                is MyDeviceUiEvent.ToggleDeviceSelected -> toggleDeviceSelected(event.category, event.device, event.isSelected)
+                is MyDeviceUiEvent.ToggleDeviceSelected -> toggleDeviceSelected(
+                    event.category,
+                    event.device,
+                    event.isSelected
+                )
+
+                is MyDeviceUiEvent.ShowAddDeviceScreen -> showAddDeviceScreen()
+                is MyDeviceUiEvent.DismissAddDeviceScreen -> dismissAddDeviceScreen()
             }
         }
     }
@@ -78,7 +94,8 @@ class MyDeviceViewModel : ViewModel() {
     }
 
     private fun toggleDeviceSelected(category: String, device: Device, isSelected: Boolean) {
-        val currentList = _uiState.value.selectedDevicesMap[category]?.toMutableList() ?: mutableListOf()
+        val currentList =
+            _uiState.value.selectedDevicesMap[category]?.toMutableList() ?: mutableListOf()
         if (isSelected) {
             currentList.add(device)
         } else {
@@ -91,5 +108,13 @@ class MyDeviceViewModel : ViewModel() {
                 }
             )
         }
+    }
+
+    private fun showAddDeviceScreen() {
+        _uiState.update { it.copy(showAddDeviceScreen = true) }
+    }
+
+    private fun dismissAddDeviceScreen() {
+        _uiState.update { it.copy(showAddDeviceScreen = false) }
     }
 }

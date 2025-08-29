@@ -28,7 +28,8 @@ fun MyDeviceScreen(modifier: Modifier = Modifier, viewModel: MyDeviceViewModel =
 
     val uiState by viewModel.uiState.collectAsState()
 
-    val backgroundStartColor = if (uiState.showFilterSheet) Color.White else MaterialTheme.colorScheme.primary
+    val backgroundStartColor =
+        if (uiState.showFilterSheet) Color.White else MaterialTheme.colorScheme.primary
     val backgroundEndColor = if (uiState.showFilterSheet) Color.White else Color(0xFFF4F5F9)
     val contentColor = if (uiState.showFilterSheet) Color.Black else Color.White
 
@@ -119,7 +120,7 @@ private fun MyDeviceContent(
                 onEvent = onEvent
             )
         } else {
-            DeviceListSection()
+            DeviceListSection(onAddDeviceClick = { onEvent(MyDeviceUiEvent.ShowAddDeviceScreen) })
         }
     }
 }
@@ -154,10 +155,11 @@ private fun ProductFilterSheetWithOverlay(
 }
 
 @Composable
-private fun DeviceListSection() {
+private fun DeviceListSection(onAddDeviceClick: () -> Unit) {
     Box(modifier = Modifier.fillMaxWidth()) {
         DeviceSummaryCard(
-            modifier = Modifier.align(Alignment.TopCenter)
+            modifier = Modifier.align(Alignment.TopCenter),
+            onAddDeviceClick = onAddDeviceClick
         )
     }
 }

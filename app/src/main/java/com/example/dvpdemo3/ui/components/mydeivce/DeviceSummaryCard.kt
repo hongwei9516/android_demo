@@ -1,6 +1,7 @@
 package com.example.dvpdemo3.ui.components.mydeivce
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -22,7 +23,7 @@ import com.example.dvpdemo3.R
 import com.example.dvpdemo3.ui.theme.DvpDemo3Theme
 
 @Composable
-fun DeviceSummaryCard(modifier: Modifier = Modifier) {
+fun DeviceSummaryCard(modifier: Modifier = Modifier, onAddDeviceClick: () -> Unit) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -69,7 +70,11 @@ fun DeviceSummaryCard(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "添加设备", color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "添加设备",
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onAddDeviceClick)
+                )
                 Box(
                     modifier = Modifier
                         .size(width = 1.dp, height = 18.dp)
@@ -85,6 +90,6 @@ fun DeviceSummaryCard(modifier: Modifier = Modifier) {
 @Composable
 fun DeviceSummaryCardPreview() {
     DvpDemo3Theme {
-        DeviceSummaryCard()
+        DeviceSummaryCard(onAddDeviceClick = {})
     }
 }
