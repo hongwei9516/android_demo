@@ -52,7 +52,9 @@ fun ProductFilterSheet(
     val currentDeviceList = categorizedDevices[currentCategory] ?: emptyList()
     val currentSelectedDevices = selectedDevicesMap[currentCategory] ?: emptyList()
 
-    val totalSelectedCount = selectedDevicesMap.values.sumOf { it.size }
+    val totalSelectedCount by remember(selectedDevicesMap) {
+        derivedStateOf { selectedDevicesMap.values.sumOf { it.size } }
+    }
 
     Column(
         modifier = modifier
@@ -78,7 +80,7 @@ fun ProductFilterSheet(
                     .width(100.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFF4F5F9)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
             ) {
                 filterCategories.forEachIndexed { index, text ->
                     FilterItem(
@@ -129,14 +131,14 @@ fun ProductFilterSheet(
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0))
             ) {
-                Text("重置", color = Color.Black)
+                Text("重置", color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
             Button(
                 onClick = onConfirm,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("确定 ($totalSelectedCount)", color = Color.White)
+                Text("确定 ($totalSelectedCount)", color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
@@ -208,7 +210,7 @@ private fun ProductGridItem(
             .fillMaxWidth()
             .height(itemHeight)
             .clip(RoundedCornerShape(4.dp))
-            .background(color = if (!isSelected) Color.White else Color(0xFFE9EBF3).copy(alpha = 0.5f))
+            .background(color = if (!isSelected) Color.White else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .clickable {
                 onToggleSelected(!isSelected)
             }

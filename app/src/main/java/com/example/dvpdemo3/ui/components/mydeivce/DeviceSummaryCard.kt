@@ -70,20 +70,36 @@ fun DeviceSummaryCard(modifier: Modifier = Modifier, onAddDeviceClick: () -> Uni
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                ActionButton(
                     text = "添加设备",
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable(onClick = onAddDeviceClick)
+                    onClick = onAddDeviceClick
                 )
                 Box(
                     modifier = Modifier
-                        .size(width = 1.dp, height = 18.dp)
+                        .width(1.dp)
+                        .height(18.dp)
                         .background(splitLineColor)
                 )
-                Text(text = "扫一扫", color = MaterialTheme.colorScheme.primary)
+                ActionButton(
+                    text = "扫一扫",
+                    onClick = { /* TODO: Implement Scan Action */ }
+                )
             }
         }
     }
+}
+
+@Composable
+private fun ActionButton(text: String, onClick: () -> Unit) {
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
 }
 
 @Preview

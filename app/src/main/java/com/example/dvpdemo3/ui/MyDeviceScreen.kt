@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.dvpdemo3.ui.components.mydeivce.DeviceSummaryCard
@@ -28,51 +27,64 @@ fun MyDeviceScreen(modifier: Modifier = Modifier, viewModel: MyDeviceViewModel =
 
     val uiState by viewModel.uiState.collectAsState()
 
-    val backgroundStartColor =
-        if (uiState.showFilterSheet) Color.White else MaterialTheme.colorScheme.primary
-    val backgroundEndColor = if (uiState.showFilterSheet) Color.White else Color(0xFFF4F5F9)
-    val contentColor = if (uiState.showFilterSheet) Color.Black else Color.White
+    Box(modifier = modifier.fillMaxSize()) {
 
-    val animatedBackgroundStartColor by animateColorAsState(
-        targetValue = backgroundStartColor,
-        animationSpec = tween(durationMillis = 300)
-    )
-    val animatedBackgroundEndColor by animateColorAsState(
-        targetValue = backgroundEndColor,
-        animationSpec = tween(durationMillis = 300)
-    )
-    val animatedContentColor by animateColorAsState(
-        targetValue = contentColor,
-        animationSpec = tween(durationMillis = 300)
-    )
+        val backgroundStartColor =
+            if (uiState.showFilterSheet) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary
+        val backgroundEndColor = if (uiState.showFilterSheet) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.background
+        val contentColor = if (uiState.showFilterSheet) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.0f to animatedBackgroundStartColor,
-                        0.4f to animatedBackgroundEndColor,
-                        1.0f to animatedBackgroundEndColor
+        val animatedBackgroundStartColor by animateColorAsState(
+            targetValue = backgroundStartColor,
+            animationSpec = tween(durationMillis = 300)
+        )
+        val animatedBackgroundEndColor by animateColorAsState(
+            targetValue = backgroundEndColor,
+            animationSpec = tween(durationMillis = 300)
+        )
+        val animatedContentColor by animateColorAsState(
+            targetValue = contentColor,
+            animationSpec = tween(durationMillis = 300)
+        )
+
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0.0f to animatedBackgroundStartColor,
+                            0.4f to animatedBackgroundEndColor,
+                            1.0f to animatedBackgroundEndColor
+                        )
                     )
                 )
+                .statusBarsPadding()
+        ) {
+            MyDeviceHeader(
+                animatedContentColor = animatedContentColor,
+                showFilterSheet = uiState.showFilterSheet,
+                onFilterClick = { viewModel.onEvent(MyDeviceUiEvent.ToggleFilterSheet) },
+                totalSelectedCount = uiState.totalSelectedCount
             )
-            .statusBarsPadding()
-    ) {
-        MyDeviceHeader(
-            animatedContentColor = animatedContentColor,
-            showFilterSheet = uiState.showFilterSheet,
-            onFilterClick = { viewModel.onEvent(MyDeviceUiEvent.ToggleFilterSheet) },
-            totalSelectedCount = uiState.totalSelectedCount
-        )
 
-        Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(10.dp))
 
-        MyDeviceContent(
-            uiState = uiState,
-            onEvent = viewModel::onEvent
-        )
+            MyDeviceContent(
+                uiState = uiState,
+                onEvent = viewModel::onEvent
+            )
+        }
+
+        AnimatedVisibility(
+            visible = uiState.showAddDeviceScreen,
+            enter = scaleIn(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+            exit = scaleOut(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+        ) {
+            BluetoothScanScreen(
+                onBackClick = { viewModel.onEvent(MyDeviceUiEvent.DismissAddDeviceScreen) }
+            )
+        }
     }
 }
 
@@ -137,7 +149,7 @@ private fun ProductFilterSheetWithOverlay(
         modifier = Modifier
             .fillMaxSize()
             .clickable(onClick = { onEvent(MyDeviceUiEvent.DismissFilter) })
-            .background(Color.Black.copy(alpha = 0.5f))
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f))
     ) {
         ProductFilterSheet(
             categorizedDevices = uiState.categorizedDevices,
