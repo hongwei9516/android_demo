@@ -125,7 +125,6 @@ fun ProductFilterSheet(
             }
         }
 
-        // 底部按钮
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -150,9 +149,6 @@ fun ProductFilterSheet(
     }
 }
 
-/**
- * 单个筛选项的 Composable。
- */
 @Composable
 private fun FilterItem(
     text: String,
@@ -206,9 +202,7 @@ private fun FilterItem(
     }
 }
 
-/**
- * 产品网格中的单个项目。
- */
+
 @Composable
 private fun ProductGridItem(
     device: Device,
@@ -289,7 +283,7 @@ fun ProductFilterSheetPreview() {
 @Composable
 fun ProductFilterSheetWithSelectionPreview() {
     DvpDemo3Theme {
-        // 模拟已选择一些设备的状态
+
         val selectedDevices = mapOf(
             "压力" to listOf(initialCategorizedDevices["压力"]!!.first()),
             "温度" to listOf(initialCategorizedDevices["温度"]!!.first())

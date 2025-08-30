@@ -11,9 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * Defines all possible user interactions (events) on the MyDevice screen.
- */
 sealed interface MyDeviceUiEvent {
     object ToggleFilterSheet : MyDeviceUiEvent
     object DismissFilter : MyDeviceUiEvent
@@ -29,14 +26,6 @@ sealed interface MyDeviceUiEvent {
     object DismissAddDeviceScreen : MyDeviceUiEvent
 }
 
-/**
- * Represents the UI state for the MyDevice screen.
- *
- * @param showFilterSheet Whether the product filter sheet is visible.
- * @param showAddDeviceScreen Whether the device scanning screen is visible.
- * @param categorizedDevices The master list of all available devices, grouped by category.
- * @param selectedDevicesMap The map of currently selected devices, grouped by category.
- */
 data class MyDeviceUiState(
     val showFilterSheet: Boolean = false,
     val showAddDeviceScreen: Boolean = false,
@@ -45,19 +34,11 @@ data class MyDeviceUiState(
     val selectedDevicesMap: Map<String, List<Device>> = initialCategorizedDevices.keys.associateWith { emptyList() }
 )
 
-/**
- * ViewModel for the MyDevice screen.
- * Manages the UI state and handles user events.
- */
 class MyDeviceViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyDeviceUiState())
     val uiState: StateFlow<MyDeviceUiState> = _uiState.asStateFlow()
 
-    /**
-     * Central entry point for all UI events.
-     * This ensures all state mutations are handled consistently.
-     */
     fun onEvent(event: MyDeviceUiEvent) {
         viewModelScope.launch {
             when (event) {
@@ -70,18 +51,26 @@ class MyDeviceViewModel : ViewModel() {
                     event.device,
                     event.isSelected
                 )
+
                 is MyDeviceUiEvent.ShowAddDeviceScreen -> showAddDeviceScreen()
                 is MyDeviceUiEvent.DismissAddDeviceScreen -> dismissAddDeviceScreen()
             }
         }
     }
 
-    /**
-     * Returns a flattened list of all selected [DeviceType]s.
-     */
     fun getSelectedDeviceTypes(): List<DeviceType> {
-        return uiState.value.selectedDevicesMap.values.flatMap { devices ->
-            devices.flatMap { it.type }
+
+        return if (uiState.value.selectedDevicesMap.values.sumOf { it.size } == 0) {
+            initialCategorizedDevices.values
+                .flatMap { deviceList ->
+                    deviceList.flatMap { device ->
+                        device.type
+                    }
+                }
+        } else {
+            uiState.value.selectedDevicesMap.values.flatMap { devices ->
+                devices.flatMap { it.type }
+            }
         }
     }
 
@@ -126,11 +115,24 @@ class MyDeviceViewModel : ViewModel() {
     private fun dismissAddDeviceScreen() {
         _uiState.update { it.copy(showAddDeviceScreen = false) }
     }
+
+
+    fun getIconForDeviceType(deviceType: DeviceType): Int? {
+        initialCategorizedDevices.values.forEach { deviceList ->
+            val foundDevice = deviceList.find { device ->
+                device.type.contains(deviceType)
+            }
+            if (foundDevice != null) {
+                return foundDevice.imageRes
+            }
+        }
+        return null
+    }
 }
 
 
-// This data could be moved to a separate data source file in a larger project.
 val initialCategorizedDevices = mapOf(
+
     "压力" to listOf(
         Device("手持高精度测温仪", "压力", listOf(DeviceType.WT300), R.drawable.ic_icon_mp1),
     ),

@@ -3,7 +3,6 @@ package com.example.dvpdemo3.data
 import androidx.annotation.DrawableRes
 import com.google.gson.annotations.SerializedName
 
-// 定义支持的设备类型
 enum class DeviceType {
 
     @SerializedName("WT300")
@@ -30,13 +29,7 @@ enum class DeviceType {
 }
 
 
-/**
- * 设备数据模型。
- *
- * @param content 设备名称。
- * @param category 设备类别
- * @param imageRes 设备图标的资源ID。
- */
+
 data class Device(
     val content: String,
     val category: String,

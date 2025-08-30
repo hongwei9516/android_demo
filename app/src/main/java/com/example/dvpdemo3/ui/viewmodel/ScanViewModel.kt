@@ -20,9 +20,12 @@ import com.juul.kable.logs.SystemLogEngine
 import com.juul.kable.peripheral
 import com.juul.kable.read
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
@@ -35,14 +38,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 
-/**
- * ViewModel for managing Bluetooth scanning and device connections.
- *
- * @param application The application context.
- */
+
 class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
-    // Kable scanner with detailed logging enabled for debugging.
     private val scanner = Scanner {
         logging {
             engine = SystemLogEngine
@@ -58,7 +56,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     private val peripheralStateJobs = mutableMapOf<String, Job>()
 
     private val _deviceConnectionStates = MutableStateFlow<Map<String, State>>(emptyMap())
-    val deviceConnectionStates: StateFlow<Map<String, State>> = _deviceConnectionStates.asStateFlow()
+    val deviceConnectionStates: StateFlow<Map<String, State>> =
+        _deviceConnectionStates.asStateFlow()
 
     private val repository = ConnectedDevicesRepository(application)
 
@@ -68,36 +67,22 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         emptyList()
     )
 
-    private val _selectedDeviceType = MutableStateFlow(DeviceType.CPT1)
-    val selectedDeviceType: StateFlow<DeviceType> = _selectedDeviceType.asStateFlow()
-
     private val _permissionsGranted = MutableStateFlow(false)
     val permissionsGranted: StateFlow<Boolean> = _permissionsGranted.asStateFlow()
 
     private var scanJob: Job? = null
 
-    /** Sets the state of permissions being granted. */
+    private val _snackbarMessages = MutableSharedFlow<String>()
+    val snackbarMessages: SharedFlow<String> = _snackbarMessages.asSharedFlow()
+
+
     fun setPermissionsGranted(isGranted: Boolean) {
         _permissionsGranted.value = isGranted
     }
 
-    /**
-     * Sets the device type to filter for during scans.
-     * Automatically starts a new scan with the new filter.
-     * @param deviceType The type of device to scan for.
-     */
-    fun setSelectedDeviceType(deviceType: DeviceType) {
-        _selectedDeviceType.value = deviceType
-        startScan() // Automatically trigger a new scan
-    }
-
-    /**
-     * Starts a new Bluetooth scan.
-     * If a scan is already in progress, it will be cancelled and restarted.
-     */
-    fun startScan() {
-        Log.i(TAG, "Starting scan for device type: ${_selectedDeviceType.value.name}")
-        scanJob?.cancel() // Cancel previous scan if it exists
+    fun startScan(selectedDeviceTypes: List<DeviceType>) {
+        Log.i(TAG, "Starting scan for device type: $selectedDeviceTypes")
+        scanJob?.cancel()
 
         discoveredDevicesMap.clear()
         _uiState.update {
@@ -121,15 +106,14 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             .filter { it.name != null }
             .map { advertisement ->
                 val deviceType = getDeviceTypeFromAdvertisement(advertisement)
-                advertisement to deviceType // Pass advertisement and its type
+                advertisement to deviceType
             }
             .filter { (_, deviceType) ->
-                // Filter based on selected device type
-                deviceType == _selectedDeviceType.value
+                deviceType in selectedDeviceTypes
             }
             .onEach { (advertisement, deviceType) ->
                 val scanResult = ScanResult(
-                    deviceName = advertisement.name!!, // Already filtered for non-null names
+                    deviceName = advertisement.name!!,
                     address = advertisement.address,
                     rssi = advertisement.rssi,
                     deviceType = deviceType
@@ -146,11 +130,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             .launchIn(viewModelScope)
     }
 
-    /**
-     * Determines the [DeviceType] from a BLE advertisement.
-     * @param advertisement The discovered advertisement.
-     * @return The determined [DeviceType].
-     */
+
     private fun getDeviceTypeFromAdvertisement(advertisement: Advertisement): DeviceType {
         return when {
             advertisement.name?.contains("WT300", ignoreCase = true) == true -> DeviceType.WT300
@@ -163,7 +143,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Stops the ongoing Bluetooth scan. */
+
     fun stopScan() {
         Log.i(TAG, "Stopping scan")
         scanJob?.cancel()
@@ -171,38 +151,43 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(isScanning = false) }
     }
 
-    /**
-     * Connects to a discovered Bluetooth device.
-     * @param scanResult The device to connect to.
-     */
+
     fun connectToDevice(scanResult: ScanResult) {
         viewModelScope.launch {
-            // Prevent duplicate connection attempts
+
             if (connectedPeripherals.containsKey(scanResult.address)) {
                 Log.d(TAG, "Device already connecting/connected. Ignoring request.")
                 return@launch
             }
 
             try {
-                // Use CoroutineScope provided by Kable for the peripheral
+
                 val peripheral = viewModelScope.peripheral(scanResult.address)
                 connectedPeripherals[scanResult.address] = peripheral
 
-                // Monitor connection state
                 peripheralStateJobs[scanResult.address] = peripheral.state
                     .onEach { state ->
                         Log.d(TAG, "Device ${scanResult.deviceName} state: $state")
                         _deviceConnectionStates.update { it + (scanResult.address to state) }
                         if (state is State.Connected) {
-                            _uiState.update { it.copy(infoMessage = "Connection successful!") }
+                            _uiState.update { it.copy(infoMessage = "连接成功！") }
+                            _snackbarMessages.emit("${scanResult.deviceName} 连接成功！")
                         }
-                    }.launchIn(viewModelScope)
+                    }
+                    .catch { throwable ->
+                        _uiState.update { it.copy(errorMessage = "连接 ${scanResult.deviceName} 失败: ${throwable.message ?: "未知错误"}") }
+                        cleanupAfterConnectionFailure(scanResult.address)
+                        Log.e(TAG, "连接 ${scanResult.deviceName} 失败", throwable)
+                    }
+                    .launchIn(viewModelScope)
 
                 Log.d(TAG, "Connecting to device: ${scanResult.deviceName}")
                 peripheral.connect()
-                Log.d(TAG, "Connection successful to: ${scanResult.deviceName}. Discovering services...")
+                Log.d(
+                    TAG,
+                    "Connection successful to: ${scanResult.deviceName}. Discovering services..."
+                )
 
-                // Save device to history
                 repository.saveConnectedDevice(
                     ConnectedDevice(
                         address = scanResult.address,
@@ -211,11 +196,11 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 )
 
-                // Example of reading characteristics after connection
                 readDeviceCharacteristics(peripheral)
 
             } catch (e: Exception) {
                 Log.e(TAG, "Connection to ${scanResult.deviceName} failed: ${e.message}", e)
+                _snackbarMessages.emit("连接 ${scanResult.deviceName} 失败: ${e.message ?: "未知错误"}")
                 cleanupAfterConnectionFailure(scanResult.address)
                 _uiState.update {
                     it.copy(errorMessage = "Connection failed: ${e.localizedMessage ?: "Unknown error"}")
@@ -224,25 +209,19 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Overloaded function to connect to a device from history.
-     * @param connectedDevice The historical device data.
-     */
+
     fun connectToDevice(connectedDevice: ConnectedDevice) {
         connectToDevice(
             ScanResult(
                 deviceName = connectedDevice.deviceName,
                 address = connectedDevice.address,
-                rssi = 0, // RSSI is not available for historical devices
+                rssi = 0,
                 deviceType = connectedDevice.deviceType
             )
         )
     }
 
-    /**
-     * Disconnects from a connected Bluetooth device.
-     * @param scanResult The device to disconnect from.
-     */
+
     fun disconnectDevice(scanResult: ScanResult) {
         viewModelScope.launch {
             try {
@@ -252,33 +231,41 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e(TAG, "Error during disconnection: ${e.message}", e)
             } finally {
                 cleanupAfterDisconnection(scanResult.address)
+                _snackbarMessages.emit("${scanResult.deviceName} 已断开连接！")
                 _uiState.update { it.copy(infoMessage = "Disconnected.") }
             }
+
         }
     }
 
-    /** Clears any pending error messages from the UI state. */
+
     fun clearErrorMessage() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    /** Clears any pending informational messages from the UI state. */
+
     fun clearInfoMessage() {
         _uiState.update { it.copy(infoMessage = null) }
     }
 
-    /** Checks if the required Bluetooth permissions are granted. */
+
     fun checkPermissions() {
         val granted = REQUIRED_PERMISSIONS.all {
-            ContextCompat.checkSelfPermission(getApplication(), it) == PermissionChecker.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                getApplication(),
+                it
+            ) == PermissionChecker.PERMISSION_GRANTED
         }
         _permissionsGranted.value = granted
     }
 
-    /**
-     * Reads all readable characteristics from a connected peripheral.
-     * @param peripheral The peripheral to read from.
-     */
+    fun clearHistory() {
+        viewModelScope.launch {
+            repository.clearHistory()
+        }
+    }
+
+
     @OptIn(ExperimentalUuidApi::class)
     private suspend fun readDeviceCharacteristics(peripheral: Peripheral) {
         try {
@@ -295,7 +282,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                             Log.d(TAG, "    Value (Hex): ${value.toHexString()}")
                             Log.d(TAG, "    Value (String): ${String(value)}")
                         } catch (e: Exception) {
-                            Log.e(TAG, "    Failed to read characteristic ${characteristic.characteristicUuid}: ${e.localizedMessage}")
+                            Log.e(
+                                TAG,
+                                "    Failed to read characteristic ${characteristic.characteristicUuid}: ${e.localizedMessage}"
+                            )
                         }
                     }
                 }
@@ -305,7 +295,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Cleans up resources related to a peripheral after a connection failure. */
+
     private fun cleanupAfterConnectionFailure(address: String) {
         peripheralStateJobs[address]?.cancel()
         peripheralStateJobs.remove(address)
@@ -313,7 +303,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _deviceConnectionStates.update { it - address }
     }
 
-    /** Cleans up resources related to a peripheral after a disconnection. */
+
     private fun cleanupAfterDisconnection(address: String) {
         peripheralStateJobs[address]?.cancel()
         peripheralStateJobs.remove(address)
@@ -350,11 +340,10 @@ val REQUIRED_PERMISSIONS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
     )
 }
 
-/** Converts a ByteArray to a hex string for logging. */
+
 fun ByteArray.toHexString(): String =
     joinToString(separator = " ") { "%02X".format(it) }
 
-// Data classes remain the same
 data class ScanUiState(
     val isScanning: Boolean = false,
     val discoveredDevices: List<ScanResult> = emptyList(),

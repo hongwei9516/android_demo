@@ -25,14 +25,6 @@ import com.example.dvpdemo3.ui.viewmodel.*
 
 private const val ANIMATION_DURATION = 300
 
-/**
- * The main screen for the "My Device" feature area.
- * It manages the display of the device list/summary and the product filter sheet.
- *
- * @param modifier The modifier to be applied to the screen.
- * @param myDeviceViewModel ViewModel for managing the UI state of this screen.
- * @param scanViewModel ViewModel for handling Bluetooth operations.
- */
 @Composable
 fun MyDeviceScreen(
     modifier: Modifier = Modifier,
@@ -43,7 +35,6 @@ fun MyDeviceScreen(
 ) {
     val uiState by myDeviceViewModel.uiState.collectAsState()
 
-    // Animate background and content colors based on whether the filter sheet is shown.
     val animatedUiColors = getAnimatedUiColors(uiState.showFilterSheet)
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -56,7 +47,7 @@ fun MyDeviceScreen(
                             animatedUiColors.backgroundStartColor,
                             animatedUiColors.backgroundEndColor
                         ),
-                        endY = 800f // Control the gradient height
+                        endY = 800f
                     )
                 )
                 .statusBarsPadding()
@@ -66,6 +57,7 @@ fun MyDeviceScreen(
                 contentColor = animatedUiColors.contentColor,
                 showFilterSheet = uiState.showFilterSheet,
                 onFilterClick = { myDeviceViewModel.onEvent(MyDeviceUiEvent.ToggleFilterSheet) },
+                onClearHistoryClick = {scanViewModel.clearHistory()},
                 totalSelectedCount = uiState.totalSelectedCount
             )
 
@@ -74,11 +66,11 @@ fun MyDeviceScreen(
             MyDeviceContent(
                 uiState = uiState,
                 onEvent = myDeviceViewModel::onEvent,
-                scanViewModel = scanViewModel
+                scanViewModel = scanViewModel,
+                myDeviceViewModel = myDeviceViewModel
             )
         }
 
-        // Animated overlay for the Bluetooth scan screen.
         AnimatedVisibility(
             visible = uiState.showAddDeviceScreen,
             enter = scaleIn(animationSpec = tween(ANIMATION_DURATION)) + fadeIn(tween(ANIMATION_DURATION)),
@@ -92,20 +84,12 @@ fun MyDeviceScreen(
     }
 }
 
-/**
- * A data class to hold animated color values for the UI.
- */
 private data class AnimatedUiColors(
     val backgroundStartColor: Color,
     val backgroundEndColor: Color,
     val contentColor: Color
 )
 
-/**
- * A composable function that provides animated colors based on the filter sheet visibility.
- * @param showFilterSheet Whether the filter sheet is currently visible.
- * @return An [AnimatedUiColors] instance with smoothly transitioning colors.
- */
 @Composable
 private fun getAnimatedUiColors(showFilterSheet: Boolean): AnimatedUiColors {
     val targetStartColor = if (showFilterSheet) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary
@@ -125,7 +109,8 @@ private fun getAnimatedUiColors(showFilterSheet: Boolean): AnimatedUiColors {
 private fun MyDeviceContent(
     uiState: MyDeviceUiState,
     onEvent: (MyDeviceUiEvent) -> Unit,
-    scanViewModel: ScanViewModel
+    scanViewModel: ScanViewModel,
+    myDeviceViewModel: MyDeviceViewModel
 ) {
     val permissionsGranted by scanViewModel.permissionsGranted.collectAsState()
 
@@ -134,10 +119,11 @@ private fun MyDeviceContent(
     ) { permissions ->
         if (permissions.values.all { it }) {
             scanViewModel.setPermissionsGranted(true)
-            scanViewModel.startScan() // Start scan immediately after getting permissions
+            val selectedDeviceTypes = myDeviceViewModel.getSelectedDeviceTypes()
+            scanViewModel.startScan(selectedDeviceTypes)
             onEvent(MyDeviceUiEvent.ShowAddDeviceScreen)
         } else {
-            // TODO: Show a message to the user that permissions are required.
+
         }
     }
 
@@ -145,15 +131,14 @@ private fun MyDeviceContent(
         scanViewModel.checkPermissions()
     }
 
-    // This defines the transition between the device list and the filter sheet.
     AnimatedContent(
         targetState = uiState.showFilterSheet,
         modifier = Modifier.fillMaxSize(),
         transitionSpec = {
-            if (targetState) { // Entering filter sheet
+            if (targetState) {
                 slideInVertically(animationSpec = tween(ANIMATION_DURATION)) { -it } togetherWith
                         fadeOut(animationSpec = tween(ANIMATION_DURATION))
-            } else { // Exiting filter sheet
+            } else {
                 fadeIn(animationSpec = tween(ANIMATION_DURATION)) togetherWith
                         slideOutVertically(animationSpec = tween(ANIMATION_DURATION)) { -it }
             }
@@ -168,21 +153,20 @@ private fun MyDeviceContent(
             DeviceListSection(
                 onAddDeviceClick = {
                     if (permissionsGranted) {
-                        scanViewModel.startScan()
+                        val selectedDeviceTypes = myDeviceViewModel.getSelectedDeviceTypes()
+                        scanViewModel.startScan(selectedDeviceTypes)
                         onEvent(MyDeviceUiEvent.ShowAddDeviceScreen)
                     } else {
                         permissionLauncher.launch(REQUIRED_PERMISSIONS)
                     }
                 },
-                onScanQrClick = { /* TODO: Implement QR scan logic */ }
+                onScanQrClick = {  },
+                myDeviceViewModel
             )
         }
     }
 }
 
-/**
- * Renders the product filter sheet with a semi-transparent background overlay.
- */
 @Composable
 private fun ProductFilterSheetWithOverlay(
     uiState: MyDeviceUiState,
@@ -192,7 +176,6 @@ private fun ProductFilterSheetWithOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f))
-            // Consume clicks on the overlay to dismiss the sheet
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null, // No ripple effect
@@ -209,18 +192,19 @@ private fun ProductFilterSheetWithOverlay(
             },
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .clickable(enabled = false) {} // Prevent clicks on the sheet from passing through to the overlay
+                .clickable(enabled = false) {}
         )
     }
 }
 
 @Composable
-private fun DeviceListSection(onAddDeviceClick: () -> Unit, onScanQrClick: () -> Unit) {
+private fun DeviceListSection(onAddDeviceClick: () -> Unit, onScanQrClick: () -> Unit, myDeviceViewModel: MyDeviceViewModel) {
     Box(modifier = Modifier.fillMaxWidth()) {
         DeviceSummaryCard(
             modifier = Modifier.align(Alignment.TopCenter),
             onAddDeviceClick = onAddDeviceClick,
-            onScanQrClick = onScanQrClick
+            onScanQrClick = onScanQrClick,
+            myDeviceViewModel = myDeviceViewModel
         )
     }
 }

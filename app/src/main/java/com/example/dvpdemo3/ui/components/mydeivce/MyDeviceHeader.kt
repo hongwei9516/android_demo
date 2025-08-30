@@ -22,23 +22,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.dvpdemo3.ui.theme.DvpDemo3Theme
 
-/**
- * Header for the "My Device" screen, including the title and filter button.
- *
- * @param contentColor The animated color for text and icons.
- * @param showFilterSheet Indicates if the filter sheet is visible, to control icon state.
- * @param onFilterClick Callback when the filter button is clicked.
- * @param totalSelectedCount The total number of selected devices to display in a badge.
- */
 @Composable
 fun MyDeviceHeader(
     contentColor: Color,
     showFilterSheet: Boolean,
     onFilterClick: () -> Unit,
+    onClearHistoryClick: () -> Unit,
     totalSelectedCount: Int
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Top row with title and add icon
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -59,36 +52,65 @@ fun MyDeviceHeader(
             )
         }
 
-        // Bottom row for the filter button
         Row(
             modifier = Modifier
-                .padding(start = 16.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onFilterClick)
-                .padding(vertical = 4.dp, horizontal = 0.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "产品",
-                style = MaterialTheme.typography.bodyLarge,
-                color = contentColor
-            )
-            if (totalSelectedCount > 0) {
-                CountBadge(
-                    count = totalSelectedCount,
-                    isFilterVisible = showFilterSheet
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onFilterClick)
+                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "产品",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = contentColor
+                )
+                if (totalSelectedCount > 0) {
+                    CountBadge(
+                        count = totalSelectedCount,
+                        isFilterVisible = showFilterSheet
+                    )
+                }
+                ArrowIcon(isFilterVisible = showFilterSheet)
+            }
+
+            if (!showFilterSheet) {
+                ClearButton(
+                    text = "清空历史",
+                    onClearHistoryClick
                 )
             }
-            ArrowIcon(isFilterVisible = showFilterSheet)
         }
     }
 }
 
 @Composable
+fun ClearButton(text: String, onClick: () -> Unit) {
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.onPrimary,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+    )
+}
+
+
+@Composable
 private fun CountBadge(count: Int, isFilterVisible: Boolean) {
-    val backgroundColor = if (isFilterVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
-    val textColor = if (isFilterVisible) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
+    val backgroundColor =
+        if (isFilterVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+    val textColor =
+        if (isFilterVisible) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
 
     Box(
         modifier = Modifier
@@ -107,7 +129,8 @@ private fun CountBadge(count: Int, isFilterVisible: Boolean) {
 
 @Composable
 private fun ArrowIcon(isFilterVisible: Boolean) {
-    val icon = if (isFilterVisible) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
+    val icon =
+        if (isFilterVisible) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
     Box(
         modifier = Modifier
             .size(18.dp)
@@ -132,6 +155,7 @@ fun MyDeviceHeaderPreview() {
             contentColor = Color.White,
             showFilterSheet = false,
             onFilterClick = {},
+            onClearHistoryClick = {},
             totalSelectedCount = 0
         )
     }
@@ -145,6 +169,7 @@ fun MyDeviceHeaderWithCountPreview() {
             contentColor = Color.White,
             showFilterSheet = false,
             onFilterClick = {},
+            onClearHistoryClick = {},
             totalSelectedCount = 3
         )
     }
@@ -158,6 +183,7 @@ fun MyDeviceHeaderWithFilterPreview() {
             contentColor = Color.Black,
             showFilterSheet = true,
             onFilterClick = {},
+            onClearHistoryClick = {},
             totalSelectedCount = 3
         )
     }

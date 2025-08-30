@@ -35,13 +35,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,14 +59,10 @@ import com.juul.kable.State
 import android.util.Log
 import androidx.compose.foundation.layout.PaddingValues
 
+
 private const val TAG = "BluetoothScanScreen"
 
-/**
- * The main screen for scanning and displaying Bluetooth devices.
- *
- * @param onBackClick Callback invoked when the back button is pressed.
- * @param scanViewModel The ViewModel managing the scanning logic.
- */
+
 @Composable
 fun BluetoothScanScreen(
     onBackClick: () -> Unit,
@@ -78,27 +72,15 @@ fun BluetoothScanScreen(
 ) {
     val uiState by scanViewModel.uiState.collectAsState()
     val deviceConnectionStates by scanViewModel.deviceConnectionStates.collectAsState()
-    val snackBarHostState = remember { SnackbarHostState() }
 
-    // Handles the system back button press to stop the scan before navigating back.
-//    BackHandler(enabled = true) {
-//        Log.d(TAG, "System back button pressed. Stopping scan.")
-//        scanViewModel.stopScan()
-//        onBackClick()
-//    }
-
-    // Effect to show error messages in a Snackbar.
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { message ->
-            snackBarHostState.showSnackbar(message)
             scanViewModel.clearErrorMessage()
         }
     }
 
-    // Effect to show info messages in a Snackbar.
     LaunchedEffect(uiState.infoMessage) {
         uiState.infoMessage?.let { message ->
-            snackBarHostState.showSnackbar(message)
             scanViewModel.clearInfoMessage()
         }
     }
@@ -116,7 +98,6 @@ fun BluetoothScanScreen(
             onBackClick()
         })
 
-        // Scanning animation section
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -141,7 +122,6 @@ fun BluetoothScanScreen(
                 .background(MaterialTheme.colorScheme.outlineVariant),
         )
 
-        // Discovered devices list
         LazyColumn(
             modifier = Modifier
                 .weight(1.5f)
@@ -172,9 +152,7 @@ fun BluetoothScanScreen(
     }
 }
 
-/**
- * Header for the screen, containing the back button.
- */
+
 @Composable
 private fun ScreenHeader(onBackClick: () -> Unit) {
     Row(
@@ -192,15 +170,12 @@ private fun ScreenHeader(onBackClick: () -> Unit) {
     }
 }
 
-/**
- * A composable that displays a pulsating scanning animation.
- */
+
 @Composable
 private fun BluetoothScanningAnimation() {
     val infiniteTransition = rememberInfiniteTransition(label = "scanning_animation")
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Create 5 ripple animations with staggered start times.
     val animationValues = List(5) { index ->
         val startDelay = (index * 200).toLong()
         val scale by infiniteTransition.animateFloat(
@@ -227,7 +202,7 @@ private fun BluetoothScanningAnimation() {
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val canvasWidth = size.width
-            // Draw ripples
+
             animationValues.forEach { (scale, alpha) ->
                 drawCircle(
                     color = primaryColor.copy(alpha = alpha),
@@ -235,14 +210,13 @@ private fun BluetoothScanningAnimation() {
                     style = Stroke(width = 2.dp.toPx() * (1 - scale))
                 )
             }
-            // Draw central solid circle
+
             drawCircle(
                 color = primaryColor,
                 radius = 30.dp.toPx()
             )
         }
 
-        // Bluetooth icon in the center
         Icon(
             painter = painterResource(id = R.drawable.ic_bluetooth_searching),
             contentDescription = "蓝牙扫描",
@@ -262,9 +236,6 @@ private fun BluetoothScanningAnimation() {
 }
 
 
-/**
- * A row composable to display information about a single discovered device.
- */
 @Composable
 fun DeviceRow(
     device: ScanResult,
@@ -284,17 +255,20 @@ fun DeviceRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = device.deviceName,
-                    color = MaterialTheme.colorScheme.primary, // Using theme color
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         painter = painterResource(id = getSignalIconForRssi(device.rssi)),
                         contentDescription = "信号强度",
-                        tint = Color.Unspecified, // Icon has its own colors
+                        tint = Color.Unspecified,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -309,7 +283,7 @@ fun DeviceRow(
                 enabled = !isConnecting,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when {
-                        isConnected -> MaterialTheme.colorScheme.primary
+                        isConnected -> MaterialTheme.colorScheme.secondary
                         isConnecting -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         else -> MaterialTheme.colorScheme.primary
                     },
@@ -328,9 +302,7 @@ fun DeviceRow(
     }
 }
 
-/**
- * Returns a drawable resource ID for the corresponding RSSI signal strength.
- */
+
 @DrawableRes
 fun getSignalIconForRssi(rssi: Int): Int {
     return when {

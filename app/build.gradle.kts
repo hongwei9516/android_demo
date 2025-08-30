@@ -60,11 +60,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
-    // kable
     implementation(libs.kable.core.android)
 
-    // dataStore
     implementation(libs.androidx.datastore.preferences)
-    // Gson
+
     implementation(libs.gson)
 }
