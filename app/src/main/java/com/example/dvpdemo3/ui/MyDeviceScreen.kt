@@ -16,13 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dvpdemo3.ui.components.mydeivce.DeviceSummaryCard
 import com.example.dvpdemo3.ui.components.mydeivce.MyDeviceHeader
 import com.example.dvpdemo3.ui.components.mydeivce.ProductFilterSheet
-import com.example.dvpdemo3.ui.theme.DvpDemo3Theme
 import com.example.dvpdemo3.ui.viewmodel.*
 
 private const val ANIMATION_DURATION = 300

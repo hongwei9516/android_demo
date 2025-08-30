@@ -59,7 +59,6 @@ import com.example.dvpdemo3.ui.viewmodel.ScanViewModel
 import com.example.dvpdemo3.ui.viewmodel.ScanViewModelFactory
 import com.juul.kable.State
 import android.util.Log
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.PaddingValues
 
 private const val TAG = "BluetoothScanScreen"
