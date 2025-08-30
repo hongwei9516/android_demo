@@ -4,59 +4,60 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dvpdemo3.R
 import com.example.dvpdemo3.data.Device
+import com.example.dvpdemo3.data.DeviceType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// 修正：定义所有用户交互事件
-sealed class MyDeviceUiEvent {
-    object ToggleFilterSheet : MyDeviceUiEvent()
-    object DismissFilter : MyDeviceUiEvent()
-    object ConfirmFilter : MyDeviceUiEvent()
-    object ResetFilter : MyDeviceUiEvent()
+/**
+ * Defines all possible user interactions (events) on the MyDevice screen.
+ */
+sealed interface MyDeviceUiEvent {
+    object ToggleFilterSheet : MyDeviceUiEvent
+    object DismissFilter : MyDeviceUiEvent
+    object ConfirmFilter : MyDeviceUiEvent
+    object ResetFilter : MyDeviceUiEvent
     data class ToggleDeviceSelected(
         val category: String,
         val device: Device,
         val isSelected: Boolean
-    ) : MyDeviceUiEvent()
+    ) : MyDeviceUiEvent
 
-    object ShowAddDeviceScreen : MyDeviceUiEvent()
-    object DismissAddDeviceScreen : MyDeviceUiEvent()
-
+    object ShowAddDeviceScreen : MyDeviceUiEvent
+    object DismissAddDeviceScreen : MyDeviceUiEvent
 }
 
-// 修正：将顶层变量重命名为 initialCategorizedDevices，以避免与数据类参数的歧义
-val initialCategorizedDevices = mapOf(
-    "压力" to listOf(
-        Device("手持高精度测温仪", "压力", R.drawable.ic_icon_mp1),
-        Device("手持高精度测温仪2", "压力", R.drawable.ic_icon_mp1)
-    ),
-    "温度" to listOf(
-        Device("精密铂电阻温湿度计", "温度", R.drawable.ic_icon_cpt1),
-        Device("实时无线记录器", "温度", R.drawable.ic_icon_zigbee),
-        Device("手持高精度测温仪", "温度", R.drawable.ic_icon_mp1)
-    ),
-    "过程" to listOf(
-        Device("实时无线记录器", "过程", R.drawable.ic_icon_zigbee)
-    )
-)
-
+/**
+ * Represents the UI state for the MyDevice screen.
+ *
+ * @param showFilterSheet Whether the product filter sheet is visible.
+ * @param showAddDeviceScreen Whether the device scanning screen is visible.
+ * @param categorizedDevices The master list of all available devices, grouped by category.
+ * @param selectedDevicesMap The map of currently selected devices, grouped by category.
+ */
 data class MyDeviceUiState(
     val showFilterSheet: Boolean = false,
-    val totalSelectedCount: Int = 0,
     val showAddDeviceScreen: Boolean = false,
-    val categorizedDevices: Map<String, List<Device>> = initialCategorizedDevices, // 修正
-    val selectedDevicesMap: Map<String, List<Device>> = initialCategorizedDevices.keys.associateWith { emptyList() } // 修正
+    val totalSelectedCount: Int = 0,
+    val categorizedDevices: Map<String, List<Device>> = initialCategorizedDevices,
+    val selectedDevicesMap: Map<String, List<Device>> = initialCategorizedDevices.keys.associateWith { emptyList() }
 )
 
+/**
+ * ViewModel for the MyDevice screen.
+ * Manages the UI state and handles user events.
+ */
 class MyDeviceViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyDeviceUiState())
     val uiState: StateFlow<MyDeviceUiState> = _uiState.asStateFlow()
 
-    // 修正：统一的事件处理入口，确保所有状态变更都通过这里
+    /**
+     * Central entry point for all UI events.
+     * This ensures all state mutations are handled consistently.
+     */
     fun onEvent(event: MyDeviceUiEvent) {
         viewModelScope.launch {
             when (event) {
@@ -69,10 +70,18 @@ class MyDeviceViewModel : ViewModel() {
                     event.device,
                     event.isSelected
                 )
-
                 is MyDeviceUiEvent.ShowAddDeviceScreen -> showAddDeviceScreen()
                 is MyDeviceUiEvent.DismissAddDeviceScreen -> dismissAddDeviceScreen()
             }
+        }
+    }
+
+    /**
+     * Returns a flattened list of all selected [DeviceType]s.
+     */
+    fun getSelectedDeviceTypes(): List<DeviceType> {
+        return uiState.value.selectedDevicesMap.values.flatMap { devices ->
+            devices.flatMap { it.type }
         }
     }
 
@@ -90,23 +99,23 @@ class MyDeviceViewModel : ViewModel() {
     }
 
     private fun resetFilter() {
-        _uiState.update { it.copy(selectedDevicesMap = initialCategorizedDevices.keys.associateWith { emptyList() }) }
+        _uiState.update {
+            it.copy(selectedDevicesMap = it.categorizedDevices.keys.associateWith { emptyList() })
+        }
     }
 
     private fun toggleDeviceSelected(category: String, device: Device, isSelected: Boolean) {
-        val currentList =
-            _uiState.value.selectedDevicesMap[category]?.toMutableList() ?: mutableListOf()
-        if (isSelected) {
-            currentList.add(device)
-        } else {
-            currentList.remove(device)
-        }
-        _uiState.update {
-            it.copy(
-                selectedDevicesMap = it.selectedDevicesMap.toMutableMap().apply {
-                    put(category, currentList)
-                }
-            )
+        _uiState.update { currentState ->
+            val updatedMap = currentState.selectedDevicesMap.toMutableMap()
+            val currentList = updatedMap[category]?.toMutableList() ?: mutableListOf()
+
+            if (isSelected) {
+                if (!currentList.contains(device)) currentList.add(device)
+            } else {
+                currentList.remove(device)
+            }
+            updatedMap[category] = currentList
+            currentState.copy(selectedDevicesMap = updatedMap)
         }
     }
 
@@ -118,3 +127,29 @@ class MyDeviceViewModel : ViewModel() {
         _uiState.update { it.copy(showAddDeviceScreen = false) }
     }
 }
+
+
+// This data could be moved to a separate data source file in a larger project.
+val initialCategorizedDevices = mapOf(
+    "压力" to listOf(
+        Device("手持高精度测温仪", "压力", listOf(DeviceType.WT300), R.drawable.ic_icon_mp1),
+    ),
+    "温度" to listOf(
+        Device(
+            "精密铂电阻温湿度计",
+            "温度",
+            listOf(DeviceType.CPT1, DeviceType.CPH1),
+            R.drawable.ic_icon_cpt1
+        ),
+    ),
+    "过程" to listOf(
+        Device(
+            "实时无线记录器",
+            "过程",
+            listOf(
+                DeviceType.WTL_2, DeviceType.WPL_2,
+                DeviceType.WHL_LM2
+            ), R.drawable.ic_icon_zigbee
+        )
+    )
+)

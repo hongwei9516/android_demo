@@ -1,6 +1,5 @@
 package com.example.dvpdemo3.ui.components.mydeivce
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,104 +20,107 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.dvpdemo3.ui.theme.DvpDemo3Theme
 
 /**
- * “我的设备”界面的头部，包含标题和筛选按钮。
+ * Header for the "My Device" screen, including the title and filter button.
  *
- * @param animatedContentColor 动画内容颜色，用于标题和图标。
- * @param showFilterSheet 指示筛选弹窗是否可见。
- * @param onFilterClick 点击筛选按钮时的回调。
- * @param totalSelectedCount 已选择的设备总数，用于显示。
+ * @param contentColor The animated color for text and icons.
+ * @param showFilterSheet Indicates if the filter sheet is visible, to control icon state.
+ * @param onFilterClick Callback when the filter button is clicked.
+ * @param totalSelectedCount The total number of selected devices to display in a badge.
  */
 @Composable
 fun MyDeviceHeader(
-    animatedContentColor: Color,
+    contentColor: Color,
     showFilterSheet: Boolean,
     onFilterClick: () -> Unit,
     totalSelectedCount: Int
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
+        // Top row with title and add icon
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 标题
             Text(
                 text = "我的设备",
-                color = animatedContentColor,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                color = contentColor,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
-
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "添加设备",
                 modifier = Modifier.size(28.dp),
-                tint = animatedContentColor
+                tint = contentColor
             )
-
         }
 
-        // 筛选按钮
+        // Bottom row for the filter button
         Row(
             modifier = Modifier
-                .padding(start = 12.dp, end = 12.dp, bottom = 4.dp)
+                .padding(start = 16.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onFilterClick)
-                .padding(vertical = 2.dp, horizontal = 0.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 4.dp, horizontal = 0.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = "产品",
-                fontSize = 16.sp,
-                color = animatedContentColor
+                style = MaterialTheme.typography.bodyLarge,
+                color = contentColor
             )
             if (totalSelectedCount > 0) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(
-                            color = if (showFilterSheet) MaterialTheme.colorScheme.primary else Color.White
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "$totalSelectedCount",
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        color = if(showFilterSheet) Color.White else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 1.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            val iconId =
-                if (showFilterSheet) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .clip(CircleShape)
-                    .background(
-                        color = if (showFilterSheet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = iconId,
-                    contentDescription = "产品筛选",
-//                    tint = animatedContentColor,
-                    tint = Color.White,
-                    modifier = Modifier.fillMaxSize()
+                CountBadge(
+                    count = totalSelectedCount,
+                    isFilterVisible = showFilterSheet
                 )
             }
+            ArrowIcon(isFilterVisible = showFilterSheet)
         }
+    }
+}
+
+@Composable
+private fun CountBadge(count: Int, isFilterVisible: Boolean) {
+    val backgroundColor = if (isFilterVisible) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
+    val textColor = if (isFilterVisible) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
+
+    Box(
+        modifier = Modifier
+            .size(18.dp)
+            .clip(CircleShape)
+            .background(color = backgroundColor),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "$count",
+            style = MaterialTheme.typography.labelSmall,
+            color = textColor,
+        )
+    }
+}
+
+@Composable
+private fun ArrowIcon(isFilterVisible: Boolean) {
+    val icon = if (isFilterVisible) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
+    Box(
+        modifier = Modifier
+            .size(18.dp)
+            .clip(CircleShape)
+            .background(color = MaterialTheme.colorScheme.primary),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = "产品筛选",
+            tint = Color.White,
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 
@@ -127,7 +129,7 @@ fun MyDeviceHeader(
 fun MyDeviceHeaderPreview() {
     DvpDemo3Theme {
         MyDeviceHeader(
-            animatedContentColor = Color.White,
+            contentColor = Color.White,
             showFilterSheet = false,
             onFilterClick = {},
             totalSelectedCount = 0
@@ -140,7 +142,7 @@ fun MyDeviceHeaderPreview() {
 fun MyDeviceHeaderWithCountPreview() {
     DvpDemo3Theme {
         MyDeviceHeader(
-            animatedContentColor = Color.White,
+            contentColor = Color.White,
             showFilterSheet = false,
             onFilterClick = {},
             totalSelectedCount = 3
@@ -153,7 +155,7 @@ fun MyDeviceHeaderWithCountPreview() {
 fun MyDeviceHeaderWithFilterPreview() {
     DvpDemo3Theme {
         MyDeviceHeader(
-            animatedContentColor = Color.Black,
+            contentColor = Color.Black,
             showFilterSheet = true,
             onFilterClick = {},
             totalSelectedCount = 3

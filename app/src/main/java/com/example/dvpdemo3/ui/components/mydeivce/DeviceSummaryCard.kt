@@ -6,89 +6,105 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.dvpdemo3.R
 import com.example.dvpdemo3.ui.theme.DvpDemo3Theme
 
+private val CardShape = RoundedCornerShape(20.dp)
+
+/**
+ * A card displayed on the main screen when no devices have been added.
+ * It shows a message and provides actions to "Add Device" or "Scan QR".
+ *
+ * @param modifier The modifier to be applied to the card.
+ * @param onAddDeviceClick Callback invoked when the "Add Device" button is clicked.
+ */
 @Composable
-fun DeviceSummaryCard(modifier: Modifier = Modifier, onAddDeviceClick: () -> Unit) {
+fun DeviceSummaryCard(
+    modifier: Modifier = Modifier,
+    onAddDeviceClick: () -> Unit,
+    onScanQrClick: () -> Unit // Added callback for scan action
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .clip(RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+            .padding(horizontal = 12.dp),
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(Modifier.height(18.dp))
-            Icon(
-                painter = painterResource(R.drawable.ic_monitor),
-                contentDescription = "No devices",
-                modifier = Modifier.size(40.dp),
-                tint = Color.Gray
-            )
-            Spacer(Modifier.height(5.dp))
-            Text(
-                text = "暂无设备",
-                color = Color.DarkGray,
-                fontSize = 16.sp
-            )
-            Spacer(Modifier.height(15.dp))
+            // "No devices" section
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_monitor),
+                    contentDescription = "No devices icon",
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "暂无设备",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
 
-            val splitLineColor = colorResource(R.color.button_gray)
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .height(1.dp)
-                    .background(splitLineColor)
+            // Divider
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(0.9f),
+                thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant
             )
 
-            // 底部按钮
+            // Bottom action buttons
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 14.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ActionButton(
                     text = "添加设备",
                     onClick = onAddDeviceClick
                 )
-                Box(
+                VerticalDivider(
                     modifier = Modifier
                         .width(1.dp)
-                        .height(18.dp)
-                        .background(splitLineColor)
+                        .height(20.dp),
+                    thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant
                 )
                 ActionButton(
                     text = "扫一扫",
-                    onClick = { /* TODO: Implement Scan Action */ }
+                    onClick = onScanQrClick
                 )
             }
         }
     }
 }
 
+/**
+ * A text-based button for actions within the [DeviceSummaryCard].
+ */
 @Composable
 private fun ActionButton(text: String, onClick: () -> Unit) {
     Text(
@@ -96,16 +112,19 @@ private fun ActionButton(text: String, onClick: () -> Unit) {
         color = MaterialTheme.colorScheme.primary,
         style = MaterialTheme.typography.bodyLarge,
         modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
 
 @Preview
 @Composable
-fun DeviceSummaryCardPreview() {
+private fun DeviceSummaryCardPreview() {
     DvpDemo3Theme {
-        DeviceSummaryCard(onAddDeviceClick = {})
+        DeviceSummaryCard(
+            onAddDeviceClick = {},
+            onScanQrClick = {}
+        )
     }
 }

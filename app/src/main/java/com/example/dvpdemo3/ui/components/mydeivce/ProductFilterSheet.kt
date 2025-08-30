@@ -46,11 +46,17 @@ fun ProductFilterSheet(
     modifier: Modifier = Modifier
 ) {
     var selectedItemIndex by remember { mutableIntStateOf(0) }
-    val filterCategories = categorizedDevices.keys.toList()
+    val filterCategories = remember { categorizedDevices.keys.toList() }
 
-    val currentCategory = filterCategories.getOrNull(selectedItemIndex) ?: ""
-    val currentDeviceList = categorizedDevices[currentCategory] ?: emptyList()
-    val currentSelectedDevices = selectedDevicesMap[currentCategory] ?: emptyList()
+    val currentCategory by remember(selectedItemIndex) {
+        derivedStateOf { filterCategories.getOrNull(selectedItemIndex) ?: "" }
+    }
+    val currentDeviceList by remember(currentCategory) {
+        derivedStateOf { categorizedDevices[currentCategory] ?: emptyList() }
+    }
+    val currentSelectedDevices by remember(currentCategory, selectedDevicesMap) {
+        derivedStateOf { selectedDevicesMap[currentCategory] ?: emptyList() }
+    }
 
     val totalSelectedCount by remember(selectedDevicesMap) {
         derivedStateOf { selectedDevicesMap.values.sumOf { it.size } }
@@ -167,10 +173,15 @@ private fun FilterItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = text, fontSize = 16.sp, color = colorResource(R.color.text_gray))
+            Text(
+                text = text,
+                fontSize = 16.sp,
+                color = colorResource(R.color.text_gray),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
         }
 
         if (count > 0) {
@@ -242,23 +253,18 @@ private fun ProductGridItem(
         if (isSelected) {
             Box(
                 modifier = Modifier
+                    .size(22.dp)
                     .align(Alignment.TopEnd)
                     .padding(2.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
             ) {
-                Spacer(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .align(Alignment.Center)
-                )
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Selected",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .align(Alignment.Center)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
